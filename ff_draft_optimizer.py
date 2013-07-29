@@ -111,7 +111,7 @@ def PrintOptimalTeams():
       names = ', '.join(sorted_points[i][0])
       points = sorted_points[i][1]
       price = sorted_points[i][2]
-      print '%s\t%dpts\t$%d' % (names, points, price)
+      print '%s\t\t%dpts\t\t$%d' % (names, points, price)
 
 
 def CollectResults(results):
@@ -141,7 +141,7 @@ def main():
   manager = multiprocessing.Manager()
   top_teams = manager.list(TOP_TEAMS)
   ImportCSV()
-  pool = multiprocessing.Pool(processes=4,
+  pool = multiprocessing.Pool(processes=multiprocessing.cpu_count(),
                               maxtasksperchild=1)
   potential_teams = []
   for qb in QB_PRICES.keys():
