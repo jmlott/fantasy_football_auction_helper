@@ -16,7 +16,7 @@ import multiprocessing
 SALARY_CAP = 175  # Cap minus bench, k, def (can be adjusted)
 FLEX_RB = ('qb', 'rb', 'rb', 'rb', 'te', 'wr', 'wr')
 FLEX_WR = ('qb', 'rb', 'rb', 'te', 'wr', 'wr', 'wr')
-CSV_FILE = '/home/jmlott/Downloads/FFL Draft Sheet - Sheet11.csv'
+CSV_FILE = '/usr/local/google/home/jmlott/Downloads/FFL Draft Sheet - Sheet11.csv'
 # End User Configurable Variables
 
 
@@ -53,7 +53,7 @@ def CalculatePlayers(qb, top_teams):
     logging.fatal('ERROR: Number of lineup positions do not match')
   team_combos = itertools.combinations(these_prices, len(FLEX_RB))
   for combo in team_combos:
-    price = sum[x[1] for x in combo]
+    price = sum([x[1] for x in combo])
     names = [x[0] for x in combo]
     if (price <= SALARY_CAP and
         price > (SALARY_CAP - 10)):
@@ -108,7 +108,7 @@ def PrintOptimalTeams():
     print 'Top Ten Teams To Draft'
     print '-----------------------'
     for i in range(9):
-      names = ', '.join(sorted_points[i][0]
+      names = ', '.join(sorted_points[i][0])
       points = sorted_points[i][1]
       price = sorted_points[i][2]
       print '%s\t%dpts\t$%d' % (names, points, price)
@@ -141,7 +141,7 @@ def main():
   manager = multiprocessing.Manager()
   top_teams = manager.list(TOP_TEAMS)
   ImportCSV()
-  pool = multiprocessing.Pool(processes=multiprocessing.cpu_count(),
+  pool = multiprocessing.Pool(processes=4,
                               maxtasksperchild=1)
   potential_teams = []
   for qb in QB_PRICES.keys():
