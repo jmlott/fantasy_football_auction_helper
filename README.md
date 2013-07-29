@@ -7,7 +7,6 @@ NOTE: This is not quite ready for primetime. I am currently working on cleaning 
 
 TODO:
 - Avoid bye week conflicts
-- Format displayed results
 - Clean up code
-- Add user configurable variables section
+- Optimize further
 - Document usage

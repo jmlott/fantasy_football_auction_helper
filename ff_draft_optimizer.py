@@ -1,21 +1,27 @@
 #!/usr/bin/python
 ##########################################
-# A tool to choose the optimal team to draft given a set of auction prices
-# and projected point values.
+# A tool to choose the optimal team to
+# draft given a set of auction prices and
+# projected point values.
 ##########################################
-
 
 import csv
 import itertools
+import logging
 import multiprocessing
 
 
-# Total Salary Cap = 200
-# Save $20 for backups
+# User Configurable Variables
+# Based on total salary cap of $200
 SALARY_CAP = 175  # Cap minus bench, k, def (can be adjusted)
 FLEX_RB = ('qb', 'rb', 'rb', 'rb', 'te', 'wr', 'wr')
 FLEX_WR = ('qb', 'rb', 'rb', 'te', 'wr', 'wr', 'wr')
 CSV_FILE = '/home/jmlott/Downloads/FFL Draft Sheet - Sheet11.csv'
+# End User Configurable Variables
+
+
+# DO NOT EDIT BELOW THIS LINE
+#################################################################
 PRICES = []
 QB_PRICES = {}
 POINTS = {}
@@ -25,25 +31,52 @@ TOP_TEAMS = [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
              (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]
 
 
-def GetPlayersInPriceAndPosition(qb, top_teams):
+def CalculatePlayers(qb, top_teams):
+  """Calculates the top 10 teams.
+
+  This function is called once for each quarterback in the CSV file.
+  It is run simultaneously on all available CPU cores until the list
+  of quarterbacks is exhausted. Each cycle can take an extremely long
+  time depending on the total number of players in the CSV. Adding
+  players to the list has an exponential effect on the run time.
+
+  Args:
+    qb: str, quarterback to run calcs against.
+    top_teams: list, template of a list of two-tuples.
+
+  Returns:
+    A list of ten 7-tuples for the top 10 teams.
+  """
   these_prices = PRICES
   these_prices.insert(0, QB_PRICES[qb])
-  team_combos = itertools.combinations(these_prices, 7)
-  for a, b, c, d, e, f, g in team_combos:
-    price = a[1] + b[1] + c[1] + d[1] + e[1] + f[1] + g[1]
-    names = (a[0], b[0], c[0], d[0], e[0], f[0], g[0])
+  if len(FLEX_RB) != len(FLEX_WR):
+    logging.fatal('ERROR: Number of lineup positions do not match')
+  team_combos = itertools.combinations(these_prices, len(FLEX_RB))
+  for combo in team_combos:
+    price = sum[x[1] for x in combo]
+    names = [x[0] for x in combo]
     if (price <= SALARY_CAP and
         price > (SALARY_CAP - 10)):
       positions = []
       for player in names:
         positions.append(POSITIONS[player])
-      if (tuple(sorted(positions)) == FLEX_RB or
-          tuple(sorted(positions)) == FLEX_WR):
+      positions = tuple(sorted(positions))
+      if (positions == FLEX_RB or positions == FLEX_WR):
         top_teams = SortByPoints(top_teams, names, price)
   return top_teams
 
 
 def SortByPoints(top_teams, names, price):
+  """Sort out top ten potential teams.
+
+  Args:
+    top_teams: list, template of a list of two-tuples.
+    names: list, string names of each player on "team".
+    price: int, total summed auction value of each player.
+
+  Returns:
+    A list of ten 7-tuples for the top 10 teams.
+  """
   points = GetPointsForTeam(names, price)
   top_teams = sorted(top_teams, key=lambda t: t[1], reverse=True)
   if points[1] > top_teams[9][1]:
@@ -52,7 +85,15 @@ def SortByPoints(top_teams, names, price):
 
 
 def GetPointsForTeam(names, price):
-  # (fred, james, matt, etc)
+  """Calculates the total points for a team.
+
+  Args:
+    names: list, string names of each player on "team".
+    price: int, total summed auction value of each player.
+
+  Returns:
+    A tuple containing the team, total points, and total price.
+  """
   choice_points = []
   for name in names:
     choice_points.append(POINTS[name])
@@ -61,19 +102,29 @@ def GetPointsForTeam(names, price):
 
 
 def PrintOptimalTeams():
+  """Displays final output."""
   sorted_points = sorted(TEAMS, key=lambda t: t[1], reverse=True)
   if sorted_points:
     print 'Top Ten Teams To Draft'
     print '-----------------------'
     for i in range(9):
-      print sorted_points[i]
+      names = ', '.join(sorted_points[i][0]
+      points = sorted_points[i][1]
+      price = sorted_points[i][2]
+      print '%s\t%dpts\t$%d' % (names, points, price)
 
 
 def CollectResults(results):
+  """Callback function that collects teams from workers.
+
+  Args:
+    results: list, top 10 teams from each worker.
+  """
   TEAMS.extend(results)
 
 
 def ImportCSV():
+  """Reads the CSV file and sets global vars with the data."""
   with open(CSV_FILE, 'rb') as csvfile:
     fantasy_list = csv.reader(csvfile, delimiter=',', quotechar='|')
     for row in fantasy_list:
@@ -86,13 +137,16 @@ def ImportCSV():
 
 
 def main():
+  """Calculates the top 10 teams for an auction based FF draft."""
   manager = multiprocessing.Manager()
   top_teams = manager.list(TOP_TEAMS)
   ImportCSV()
-  pool = multiprocessing.Pool(processes=4, maxtasksperchild=1)
+  pool = multiprocessing.Pool(processes=multiprocessing.cpu_count(),
+                              maxtasksperchild=1)
   potential_teams = []
   for qb in QB_PRICES.keys():
-    pool.apply_async(GetPlayersInPriceAndPosition, args=(qb, top_teams), callback=CollectResults)
+    pool.apply_async(CalculatePlayers, args=(qb, top_teams),
+                     callback=CollectResults)
   pool.close()
   pool.join()
   PrintOptimalTeams()
