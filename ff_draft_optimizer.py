@@ -14,9 +14,8 @@ import multiprocessing
 # User Configurable Variables
 # Based on total salary cap of $200
 SALARY_CAP = 175  # Cap minus bench, k, def (can be adjusted)
-FLEX_RB = ('qb', 'rb', 'rb', 'rb', 'te', 'wr', 'wr')
-FLEX_WR = ('qb', 'rb', 'rb', 'te', 'wr', 'wr', 'wr')
-CSV_FILE = '/usr/local/google/home/jmlott/Downloads/FFL Draft Sheet - Sheet11.csv'
+CSV_FILE = '/home/jmlott/Downloads/FFL Draft Sheet - Sheet11.csv'
+MUST_HAVES = ('Jamaal Charles')
 # End User Configurable Variables
 
 
@@ -27,6 +26,8 @@ QB_PRICES = {}
 POINTS = {}
 POSITIONS = {}
 TEAMS = []
+FLEX_RB = ('qb', 'rb', 'rb', 'rb', 'te', 'wr', 'wr')
+FLEX_WR = ('qb', 'rb', 'rb', 'te', 'wr', 'wr', 'wr')
 TOP_TEAMS = [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
              (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]
 
@@ -55,14 +56,15 @@ def CalculatePlayers(qb, top_teams):
   for combo in team_combos:
     price = sum([x[1] for x in combo])
     names = [x[0] for x in combo]
-    if (price <= SALARY_CAP and
-        price > (SALARY_CAP - 10)):
+    if price <= SALARY_CAP:
       positions = []
       for player in names:
         positions.append(POSITIONS[player])
       positions = tuple(sorted(positions))
       if (positions == FLEX_RB or positions == FLEX_WR):
-        top_teams = SortByPoints(top_teams, names, price)
+        if set(MUST_HAVES).issubset(set(names)):
+          top_teams = SortByPoints(top_teams, names, price)
+  print top_teams
   return top_teams
 
 
